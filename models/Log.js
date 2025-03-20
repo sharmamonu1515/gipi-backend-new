@@ -6,6 +6,7 @@ const logSchema = new mongoose.Schema({
   dateTime: { type: Date, default: Date.now },
   responseTime: { type: Number, required: true }, // Store response time in milliseconds
   additionalData: { type: Object, default: {} },
+  status: { type: String, required: true, default: 'success'},
 });
 
 module.exports = mongoose.model("Log", logSchema);

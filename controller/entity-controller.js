@@ -1,5 +1,6 @@
 const axios = require("axios");
 const KarzaCompanyDetail = require("../models/KarzaCompanyDetail");
+const Karza = require("../lib/karza");
 const saveLog = require("../lib/logHelper");
 const Entity = module.exports;
 
@@ -8,8 +9,17 @@ const USER_ID = "634ac9e31deb4cd28a4adde9";
 
 Entity.search = async (req, res) => {
   try {
+    const { id } = req.body;
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "ID is required.",
+      });
+    }
+
     const requestBody = {
-      id: req.body.id || "",
+      id
     };
 
     // check if company already exists
@@ -26,14 +36,19 @@ Entity.search = async (req, res) => {
 
     const startTime = Date.now();
 
-    const response = await axios.post("https://beta.kscan.in/v3/search/byIdOrName", requestBody, {
+    const response = await axios.post(`${Karza.BETA_BASE_URL}/v3/search/byIdOrName`, requestBody, {
       headers: {
         "Content-Type": "application/json",
-        "x-karza-key": process.env.KARZA_API_KEY,
+        "x-karza-key": Karza.API_KEY,
       },
     });
 
     const responseTime = Date.now() - startTime;
+    await saveLog(USER_ID, "Entity Search", responseTime, response.data.statusCode === 101 ? "success" : "failed", requestBody);
+
+    if (response.data.statusCode !== 101) {
+      throw new Error("Data not found.");
+    }
 
     // Extract company details from API response
     const companyData = response.data?.result?.map((company) => ({
@@ -51,8 +66,6 @@ Entity.search = async (req, res) => {
         await KarzaCompanyDetail.findOneAndUpdate({ entityId: company.entityId }, company, { upsert: true, new: true });
       })
     );
-
-    await saveLog(USER_ID, "Entity Search", responseTime, requestBody);
 
     return res.status(200).send({
       success: true,

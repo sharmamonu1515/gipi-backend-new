@@ -1,6 +1,7 @@
 const fs = require("fs");
 const cors = require("cors");
 const express = require("express");
+const https = require('node:https');
 const MongoStore = require("connect-mongo");
 const mongoose = require("mongoose");
 const session = require("express-session");
@@ -8,6 +9,11 @@ const config = require("./config");
 const dotenv = require("dotenv");
 
 dotenv.config();
+
+const options = {
+  key: fs.readFileSync("../ssl/server.key"),
+  cert: fs.readFileSync("../ssl/server.cert"),
+};
 
 const app = express();
 
@@ -52,3 +58,8 @@ app.use("/", router);
 // Start server
 const PORT = process.env.APP_PORT || 4000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+
+// https.createServer(options, app).listen(443, () => {
+//   console.log("Server running at https://localhost:443");
+// });

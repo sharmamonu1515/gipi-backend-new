@@ -1,13 +1,13 @@
 const axios = require("axios");
-const KarzaUBO = require("../models/KarzaUBO");
+const KarzaSBO = require("../models/KarzaSBO");
 const Karza = require("../lib/karza");
 const saveLog = require("../lib/logHelper");
-const UBO = module.exports;
+const SBO = module.exports;
 
 // ! hardcoded must be setup properly
 const USER_ID = "634ac9e31deb4cd28a4adde9";
 
-UBO.search = async (req, res) => {
+SBO.search = async (req, res) => {
   try {
     const { id } = req.body;
 
@@ -24,20 +24,20 @@ UBO.search = async (req, res) => {
     };
 
     // check if company already exists
-    const existingUBO = await KarzaUBO.findOne({ entityId: requestBody.id });
+    const existingSBO = await KarzaSBO.findOne({ entityId: requestBody.id });
 
-    if (existingUBO) {
+    if (existingSBO) {
       console.log("Returning data from MongoDB database.");
       return res.status(200).send({
         success: true,
-        data: existingUBO,
-        message: "UBO details fetched successfully.",
+        data: existingSBO,
+        message: "SBO details fetched successfully.",
       });
     }
 
     const startTime = Date.now();
 
-    const response = await axios.post(`${Karza.API_BASE_URL}/v1/ubo`, requestBody, {
+    const response = await axios.post(`${Karza.API_BASE_URL}/v1/corp/docs/details/ubo`, requestBody, {
       headers: {
         "Content-Type": "application/json",
         "x-karza-key": Karza.API_KEY,
@@ -46,27 +46,27 @@ UBO.search = async (req, res) => {
 
     const responseTime = Date.now() - startTime;
 
-    await saveLog(USER_ID, "UBO", responseTime, response.data.statusCode === 101 ? "success" : "failed", requestBody);
+    await saveLog(USER_ID, "SBO", responseTime, response.data.statusCode === 101 ? "success" : "failed", requestBody);
 
     if (response.data.statusCode !== 101) {
-      throw new Error("Data not found.");
+      throw new Error('Data not found.');
     }
 
     // Extract company details from API response
-    const uboData = response.data?.result || {};
-    uboData.createdAt = Date.now();
-    uboData.updatedAt = Date.now();
+    const sboData = response.data?.result || {};
+    sboData.createdAt = Date.now();
+    sboData.updatedAt = Date.now();
 
     // save data
-    await KarzaUBO.findOneAndUpdate({ entityId: uboData.entityId || requestBody.entityId }, uboData, { upsert: true, new: true });
+    await KarzaSBO.findOneAndUpdate({ entityId: sboData.entityId || requestBody.entityId }, sboData, { upsert: true, new: true });
 
     return res.status(200).send({
       success: true,
-      data: uboData,
-      message: "UBO details fetched successfully.",
+      data: sboData,
+      message: "SBO details fetched successfully.",
     });
   } catch (error) {
-    console.error("Error fetching UBO data:", error);
+    console.error("Error fetching SBO data:", error);
     return res.status(500).send({
       success: false,
       message: "Failed to fetch data.",
@@ -74,7 +74,7 @@ UBO.search = async (req, res) => {
   }
 };
 
-UBO.getList = async (req, res) => {
+SBO.getList = async (req, res) => {
   try {
     let { page = 1, limit = 10, search = "" } = req.query;
 
@@ -83,12 +83,12 @@ UBO.getList = async (req, res) => {
 
     const query = search
       ? {
-          $or: [{ entityId: { $regex: search, $options: "i" } }, { entityName: { $regex: search, $options: "i" } }],
+          $or: [{ entityId: { $regex: search, $options: "i" } }, { companyName: { $regex: search, $options: "i" } }],
         }
       : {};
 
-    const totalRecords = await KarzaUBO.countDocuments(query);
-    const ubos = await KarzaUBO.find(query)
+    const totalRecords = await KarzaSBO.countDocuments(query);
+    const sbos = await KarzaSBO.find(query)
       .skip((page - 1) * limit)
       .limit(limit)
       .sort({ createdAt: -1 });
@@ -96,7 +96,7 @@ UBO.getList = async (req, res) => {
     return res.status(200).json({
       success: true,
       data: {
-        ubos,
+        sbos,
         pagination: {
           totalRecords,
           totalPages: Math.ceil(totalRecords / limit),
@@ -104,36 +104,36 @@ UBO.getList = async (req, res) => {
           pageSize: limit,
         },
       },
-      message: "UBO list fetched successfully.",
+      message: "SBO list fetched successfully.",
     });
   } catch (error) {
-    console.error("Error fetching UBO list:", error);
+    console.error("Error fetching SBO list:", error);
     return res.status(500).send({
       success: false,
-      message: "Failed to fetch UBO list.",
+      message: "Failed to fetch SBO list.",
     });
   }
 };
 
-UBO.getById = async (req, res) => {
+SBO.getById = async (req, res) => {
   try {
     const { id } = req.params;
     if (!id) {
-      return res.status(400).json({ success: false, message: "UBO ID is required" });
+      return res.status(400).json({ success: false, message: "SBO ID is required" });
     }
 
-    const uboDetails = await KarzaUBO.findOne({ entityId: id });
-    if (!uboDetails) {
-      return res.status(404).json({ success: false, message: "UBO not found" });
+    const sboDetails = await KarzaSBO.findOne({ entityId: id });
+    if (!sboDetails) {
+      return res.status(404).json({ success: false, message: "SBO not found" });
     }
 
     return res.status(200).json({
       success: true,
-      data: uboDetails,
-      message: "UBO details fetched successfully.",
+      data: sboDetails,
+      message: "SBO details fetched successfully.",
     });
   } catch (error) {
-    console.error("Error fetching UBO details:", error);
-    return res.status(500).json({ success: false, message: "Failed to fetch UBO details." });
+    console.error("Error fetching SBO details:", error);
+    return res.status(500).json({ success: false, message: "Failed to fetch SBO details." });
   }
 };

@@ -4,8 +4,7 @@ const Karza = require("../lib/karza");
 const saveLog = require("../lib/logHelper");
 const FinancialSummaryLLP = module.exports;
 
-// ! hardcoded must be setup properly
-const USER_ID = "634ac9e31deb4cd28a4adde9";
+
 
 FinancialSummaryLLP.search = async (req, res) => {
   try {
@@ -38,16 +37,16 @@ FinancialSummaryLLP.search = async (req, res) => {
 
     const startTime = Date.now();
 
-    const response = await axios.post(`${Karza.API_BASE_URL}/v3/corp/docs/llpFinancialSummary`, requestBody, {
+    const response = await axios.post(`${await Karza.getAPIBaseURL()}/v3/corp/docs/llpFinancialSummary`, requestBody, {
       headers: {
         "Content-Type": "application/json",
-        "x-karza-key": Karza.API_KEY,
+        "x-karza-key": await Karza.getAPIKey(),
       },
     });
 
     const responseTime = Date.now() - startTime;
 
-    await saveLog(USER_ID, "Financial Summary LLP", responseTime, response.data.statusCode === 101 ? "success" : "failed", requestBody);
+    await saveLog(req.user?._id, "Financial Summary LLP", responseTime, response.data.statusCode === 101 ? "success" : "failed", requestBody);
 
     if (response.data.statusCode !== 101) {
       throw new Error("Data not found.");

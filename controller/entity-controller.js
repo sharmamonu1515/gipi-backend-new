@@ -2,10 +2,9 @@ const axios = require("axios");
 const KarzaCompanyDetail = require("../models/KarzaCompanyDetail");
 const Karza = require("../lib/karza");
 const saveLog = require("../lib/logHelper");
+const LitigationBI = require("./litigation-bi-controller");
 const Entity = module.exports;
 
-// ! hardcoded must be setup properly
-const USER_ID = "634ac9e31deb4cd28a4adde9";
 
 Entity.search = async (req, res) => {
   try {
@@ -19,7 +18,7 @@ Entity.search = async (req, res) => {
     }
 
     const requestBody = {
-      id
+      id,
     };
 
     // check if company already exists
@@ -36,15 +35,15 @@ Entity.search = async (req, res) => {
 
     const startTime = Date.now();
 
-    const response = await axios.post(`${Karza.BETA_BASE_URL}/v3/search/byIdOrName`, requestBody, {
+    const response = await axios.post(`${await Karza.getBetaBaseURL()}/v3/search/byIdOrName`, requestBody, {
       headers: {
         "Content-Type": "application/json",
-        "x-karza-key": Karza.API_KEY,
+        "x-karza-key": await Karza.getAPIKey(),
       },
     });
 
     const responseTime = Date.now() - startTime;
-    await saveLog(USER_ID, "Entity Search", responseTime, response.data.statusCode === 101 ? "success" : "failed", requestBody);
+    await saveLog(req.user?._id, "Entity Search", responseTime, response.data.statusCode === 101 ? "success" : "failed", requestBody);
 
     if (response.data.statusCode !== 101) {
       throw new Error("Data not found.");
@@ -124,5 +123,37 @@ Entity.getList = async (req, res) => {
       success: false,
       message: "Failed to fetch company list.",
     });
+  }
+};
+
+Entity.searchByNameOrId = async (req, res) => {
+  try {
+    const reqData = {
+      id: /\d/.test(req.body.name) ? req.body.name : undefined,
+      filter: {
+        name: req.body.name,
+      },
+      nameMatch: false,
+      entitySearch: true,
+      temporaryKid: false,
+      section: "search",
+    };
+
+    const litigationAuthDetails = await LitigationBI.getAndSaveAuthToken();
+
+    let config = {
+      method: "post",
+      maxBodyLength: Infinity,
+      url: await Karza.getSearchURL(),
+      headers: await Karza.getHeaders(litigationAuthDetails.setCookie),
+      data: JSON.stringify(reqData),
+    };
+
+    const response = await axios.request(config);
+
+    return res.send(response.data);
+  } catch (error) {
+    console.error("Error in searchByNameOrId:", error.message);
+    return res.send({ status: "error", message: error.message });
   }
 };

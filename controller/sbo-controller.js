@@ -4,8 +4,7 @@ const Karza = require("../lib/karza");
 const saveLog = require("../lib/logHelper");
 const SBO = module.exports;
 
-// ! hardcoded must be setup properly
-const USER_ID = "634ac9e31deb4cd28a4adde9";
+
 
 SBO.search = async (req, res) => {
   try {
@@ -37,19 +36,19 @@ SBO.search = async (req, res) => {
 
     const startTime = Date.now();
 
-    const response = await axios.post(`${Karza.API_BASE_URL}/v1/corp/docs/details/ubo`, requestBody, {
+    const response = await axios.post(`${await Karza.getAPIBaseURL()}/v1/corp/docs/details/ubo`, requestBody, {
       headers: {
         "Content-Type": "application/json",
-        "x-karza-key": Karza.API_KEY,
+        "x-karza-key": await Karza.getAPIKey(),
       },
     });
 
     const responseTime = Date.now() - startTime;
 
-    await saveLog(USER_ID, "SBO", responseTime, response.data.statusCode === 101 ? "success" : "failed", requestBody);
+    await saveLog(req.user?._id, "SBO", responseTime, response.data.statusCode === 101 ? "success" : "failed", requestBody);
 
     if (response.data.statusCode !== 101) {
-      throw new Error('Data not found.');
+      throw new Error("Data not found.");
     }
 
     // Extract company details from API response
@@ -87,8 +86,18 @@ SBO.getList = async (req, res) => {
         }
       : {};
 
+    const projection = {
+      _id: 1,
+      entityId: 1,
+      __v: 1,
+      companyName: 1,
+      createdAt: 1,
+      updatedAt: 1,
+      lastDownloaded: 1,
+    };
+
     const totalRecords = await KarzaSBO.countDocuments(query);
-    const sbos = await KarzaSBO.find(query)
+    const sbos = await KarzaSBO.find(query, projection)
       .skip((page - 1) * limit)
       .limit(limit)
       .sort({ createdAt: -1 });

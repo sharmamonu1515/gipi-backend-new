@@ -7,6 +7,5 @@ module.exports = mongoose.model('litigation_bi_auth', new Schema({
     token: {type: String, required: true},
     username: {type: String, required: true},
     isExpired: {type: Boolean, default: false},
-    setCookie: {type: String, required: true},
-    type: {type: String, required: true},
+    setCookie: {type: String, required: true}
 }));

@@ -4,8 +4,7 @@ const Karza = require("../lib/karza");
 const saveLog = require("../lib/logHelper");
 const BIFR = module.exports;
 
-// ! hardcoded must be setup properly
-const USER_ID = "634ac9e31deb4cd28a4adde9";
+
 
 BIFR.search = async (req, res) => {
   try {
@@ -36,16 +35,16 @@ BIFR.search = async (req, res) => {
 
     const startTime = Date.now();
 
-    const response = await axios.post(`${Karza.API_BASE_URL}/v1/defaulters/bifr`, requestBody, {
+    const response = await axios.post(`${await Karza.getAPIBaseURL()}/v1/defaulters/bifr`, requestBody, {
       headers: {
         "Content-Type": "application/json",
-        "x-karza-key": Karza.API_KEY,
+        "x-karza-key": await Karza.getAPIKey(),
       },
     });
 
     const responseTime = Date.now() - startTime;
 
-    await saveLog(USER_ID, "BIFR", responseTime, response.data.statusCode === 101 ? 'success' : 'failed',  requestBody);
+    await saveLog(req.user?._id, "BIFR", responseTime, response.data.statusCode === 101 ? 'success' : 'failed',  requestBody);
 
     if (response.data.statusCode !== 101) {
       throw new Error('Data not found.');

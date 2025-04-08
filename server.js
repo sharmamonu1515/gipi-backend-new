@@ -1,5 +1,6 @@
 const fs = require("fs");
 const cors = require("cors");
+const path = require('path');
 const express = require("express");
 const https = require('node:https');
 const MongoStore = require("connect-mongo");
@@ -10,10 +11,10 @@ const dotenv = require("dotenv");
 
 dotenv.config();
 
-const options = {
-  key: fs.readFileSync("../ssl/server.key"),
-  cert: fs.readFileSync("../ssl/server.cert"),
-};
+// const options = {
+//   key: fs.readFileSync("../ssl/server.key"),
+//   cert: fs.readFileSync("../ssl/server.cert"),
+// };
 
 const app = express();
 
@@ -22,6 +23,8 @@ app.use(cors());
 // Middleware for JSON parsing
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 mongoose
   .connect(process.env.MONGO_URI)

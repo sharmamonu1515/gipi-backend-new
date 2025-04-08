@@ -1,13 +1,12 @@
 const axios = require("axios");
-const KarzaPeerComparision = require("../models/KarzaPeerComparision");
+const KarzaPeerComparison = require("../models/KarzaPeerComparison");
 const Karza = require("../lib/karza");
 const saveLog = require("../lib/logHelper");
-const PeerComparision = module.exports;
+const PeerComparison = module.exports;
 
-// ! hardcoded must be setup properly
-const USER_ID = "634ac9e31deb4cd28a4adde9";
 
-PeerComparision.search = async (req, res) => {
+
+PeerComparison.search = async (req, res) => {
   try {
 
     const { id } = req.body;
@@ -24,54 +23,54 @@ PeerComparision.search = async (req, res) => {
     };
 
     // check if company already exists
-    const existingComparision = await KarzaPeerComparision.findOne({ entityId: requestBody.id });
+    const existingComparison = await KarzaPeerComparison.findOne({ entityId: requestBody.id });
 
-    if (existingComparision) {
+    if (existingComparison) {
       console.log("Returning data from MongoDB database.");
       return res.status(200).send({
         success: true,
-        data: existingComparision,
-        message: "Peer Comparision details fetched successfully.",
+        data: existingComparison,
+        message: "Peer Comparison details fetched successfully.",
       });
     }
 
     const startTime = Date.now();
 
-    const response = await axios.post(`${Karza.API_BASE_URL}/v1/peer-details/search`, requestBody, {
+    const response = await axios.post(`${await Karza.getAPIBaseURL()}/v1/peer-details/search`, requestBody, {
       headers: {
         "Content-Type": "application/json",
-        "x-karza-key": Karza.API_KEY,
+        "x-karza-key": await Karza.getAPIKey(),
       },
     });
 
     const responseTime = Date.now() - startTime;
 
-    await saveLog(USER_ID, "Peer Comparision", responseTime, response.data.statusCode === 101 ? "success" : "failed", requestBody);
+    await saveLog(req.user?._id, "Peer Comparison", responseTime, response.data.statusCode === 101 ? "success" : "failed", requestBody);
 
     if (response.data.statusCode !== 101) {
       throw new Error('Data not found.');
     }
 
     // Extract company details from API response
-    const peerComparisionData = response.data?.result?.records || {};
-    peerComparisionData.createdAt = Date.now();
-    peerComparisionData.updatedAt = Date.now();
+    const peerComparisonData = response.data?.result?.records || {};
 
     const data = {
         entityId: requestBody.cinKid,
-        data: peerComparisionData,
+        data: peerComparisonData,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
     };
 
     // save data
-    await KarzaPeerComparision.findOneAndUpdate({ entityId: requestBody.cinKid }, data, { upsert: true, new: true });
+    await KarzaPeerComparison.findOneAndUpdate({ entityId: requestBody.cinKid }, data, { upsert: true, new: true });
 
     return res.status(200).send({
       success: true,
       data,
-      message: "Peer Comparision details fetched successfully.",
+      message: "Peer Comparison details fetched successfully.",
     });
   } catch (error) {
-    console.error("Error fetching Peer Comparision data:", error);
+    console.error("Error fetching Peer Comparison data:", error);
     return res.status(500).send({
       success: false,
       message: "Failed to fetch data.",
@@ -79,7 +78,7 @@ PeerComparision.search = async (req, res) => {
   }
 };
 
-PeerComparision.getList = async (req, res) => {
+PeerComparison.getList = async (req, res) => {
   try {
     let { page = 1, limit = 10, search = "" } = req.query;
 
@@ -92,8 +91,8 @@ PeerComparision.getList = async (req, res) => {
         }
       : {};
 
-    const totalRecords = await KarzaPeerComparision.countDocuments(query);
-    const peerComparisions = await KarzaPeerComparision.find(query)
+    const totalRecords = await KarzaPeerComparison.countDocuments(query);
+    const peerComparisons = await KarzaPeerComparison.find(query)
       .skip((page - 1) * limit)
       .limit(limit)
       .sort({ createdAt: -1 });
@@ -101,7 +100,7 @@ PeerComparision.getList = async (req, res) => {
     return res.status(200).json({
       success: true,
       data: {
-        peerComparisions,
+        peerComparisons,
         pagination: {
           totalRecords,
           totalPages: Math.ceil(totalRecords / limit),
@@ -109,36 +108,36 @@ PeerComparision.getList = async (req, res) => {
           pageSize: limit,
         },
       },
-      message: "Peer Comparision list fetched successfully.",
+      message: "Peer Comparison list fetched successfully.",
     });
   } catch (error) {
-    console.error("Error fetching Peer Comparision list:", error);
+    console.error("Error fetching Peer Comparison list:", error);
     return res.status(500).send({
       success: false,
-      message: "Failed to fetch Peer Comparision list.",
+      message: "Failed to fetch Peer Comparison list.",
     });
   }
 };
 
-PeerComparision.getById = async (req, res) => {
+PeerComparison.getById = async (req, res) => {
   try {
     const { id } = req.params;
     if (!id) {
       return res.status(400).json({ success: false, message: "ID is required" });
     }
 
-    const peerComparision = await KarzaPeerComparision.findOne({ entityId: id });
-    if (!peerComparision) {
-      return res.status(404).json({ success: false, message: "Peer Comparision not found" });
+    const peerComparison = await KarzaPeerComparison.findOne({ entityId: id });
+    if (!peerComparison) {
+      return res.status(404).json({ success: false, message: "Peer Comparison not found" });
     }
 
     return res.status(200).json({
       success: true,
-      data: peerComparision,
-      message: "Peer Comparision details fetched successfully.",
+      data: peerComparison,
+      message: "Peer Comparison details fetched successfully.",
     });
   } catch (error) {
-    console.error("Error fetching Peer Comparision details:", error);
-    return res.status(500).json({ success: false, message: "Failed to fetch Peer Comparision details." });
+    console.error("Error fetching Peer Comparison details:", error);
+    return res.status(500).json({ success: false, message: "Failed to fetch Peer Comparison details." });
   }
 };

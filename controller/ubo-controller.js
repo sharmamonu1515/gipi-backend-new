@@ -4,8 +4,7 @@ const Karza = require("../lib/karza");
 const saveLog = require("../lib/logHelper");
 const UBO = module.exports;
 
-// ! hardcoded must be setup properly
-const USER_ID = "634ac9e31deb4cd28a4adde9";
+
 
 UBO.search = async (req, res) => {
   try {
@@ -37,16 +36,16 @@ UBO.search = async (req, res) => {
 
     const startTime = Date.now();
 
-    const response = await axios.post(`${Karza.API_BASE_URL}/v1/ubo`, requestBody, {
+    const response = await axios.post(`${await Karza.getAPIBaseURL()}/v1/ubo`, requestBody, {
       headers: {
         "Content-Type": "application/json",
-        "x-karza-key": Karza.API_KEY,
+        "x-karza-key": await Karza.getAPIKey(),
       },
     });
 
     const responseTime = Date.now() - startTime;
 
-    await saveLog(USER_ID, "UBO", responseTime, response.data.statusCode === 101 ? "success" : "failed", requestBody);
+    await saveLog(req.user?._id, "UBO", responseTime, response.data.statusCode === 101 ? "success" : "failed", requestBody);
 
     if (response.data.statusCode !== 101) {
       throw new Error("Data not found.");
@@ -87,8 +86,21 @@ UBO.getList = async (req, res) => {
         }
       : {};
 
+    const projection = {
+      _id: 1,
+      entityId: 1,
+      createdAt: 1,
+      updatedAt: 1,
+      coverage: 1,
+      createdAt: 1,
+      entityName: 1,
+      finYear: 1,
+      isPartial: 1,
+      totalEquityShares: 1,
+    };
+
     const totalRecords = await KarzaUBO.countDocuments(query);
-    const ubos = await KarzaUBO.find(query)
+    const ubos = await KarzaUBO.find(query, projection)
       .skip((page - 1) * limit)
       .limit(limit)
       .sort({ createdAt: -1 });
